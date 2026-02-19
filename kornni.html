@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Search Tree Visualizer - Modern Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text: #f8fafc;
+        }
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        /* ส่วนควบคุม */
+        .controls {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            padding: 25px;
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        input {
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            background: rgba(0,0,0,0.2);
+            color: white;
+            font-family: 'Kanit';
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+        }
+
+        button {
+            padding: 12px 25px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-family: 'Kanit';
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-add {
+            background: linear-gradient(to right, #6366f1, #4f46e5);
+            color: white;
+        }
+
+        .btn-reset {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            filter: brightness(1.2);
+        }
+
+        /* ส่วนพื้นที่วาด Tree */
+        #canvas-container {
+            background: var(--glass);
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* ส่วนผลการท่องต้นไม้ */
+        .traversal-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .result-card {
+            background: var(--glass);
+            padding: 20px;
+            border-radius: 18px;
+            border: 1px solid var(--glass-border);
+            text-align: center;
+            transition: 0.3s;
+        }
+
+        .result-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .result-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.9rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .result-card p {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #ddd6fe;
+            word-break: break-all;
+        }
+
+        .tagline {
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>BST Visualizer</h1>
+
+    <div class="controls">
+        <input type="number" id="node-input" placeholder="ใส่ตัวเลขที่นี่...">
+        <button class="btn-add" onclick="insertNode()">+ เพิ่มข้อมูล</button>
+        <button class="btn-reset" onclick="resetTree()">ล้างข้อมูล</button>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="treeCanvas" width="800" height="450"></canvas>
+    </div>
+
+    <div class="traversal-results">
+        <div class="result-card">
+            <h3>Preorder Traversal</h3>
+            <p id="preorder">-</p>
+            <div class="tagline">(Root → Left → Right)</div>
+        </div>
+        <div class="result-card">
+            <h3>Inorder Traversal</h3>
+            <p id="inorder">-</p>
+            <div class="tagline">(Left → Root → Right)</div>
+        </div>
+        <div class="result-card">
+            <h3>Postorder Traversal</h3>
+            <p id="postorder">-</p>
+            <div class="tagline">(Left → Right → Root)</div>
+        </div>
+    </div>
+
+    <script>
+        // โครงสร้างข้อมูล BST และ Logic การวาด
+        class Node {
+            constructor(value) {
+                this.value = value;
+                this.left = null;
+                this.right = null;
+                this.x = 0;
+                this.y = 0;
+            }
+        }
+
+        let root = null;
+        const canvas = document.getElementById('treeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function insertNode() {
+            const input = document.getElementById('node-input');
+            const value = parseInt(input.value);
+            if (isNaN(value)) return;
+
+            const newNode = new Node(value);
+            if (root === null) {
+                root = newNode;
+            } else {
+                insertRecursive(root, newNode);
+            }
+            
+            input.value = '';
+            updateView();
+        }
+
+        function insertRecursive(node, newNode) {
+            if (newNode.value < node.value) {
+                if (node.left === null) node.left = newNode;
+                else insertRecursive(node.left, newNode);
+            } else {
+                if (node.right === null) node.right = newNode;
+                else insertRecursive(node.right, newNode);
+            }
+        }
+
+        function resetTree() {
+            root = null;
+            updateView();
+        }
+
+        function updateView() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (root) {
+                drawTree(root, canvas.width / 2, 50, canvas.width / 4);
+            }
+            
+            // อัปเดตการท่องต้นไม้
+            document.getElementById('preorder').innerText = getPreorder(root).join(' , ') || '-';
+            document.getElementById('inorder').innerText = getInorder(root).join(' , ') || '-';
+            document.getElementById('postorder').innerText = getPostorder(root).join(' , ') || '-';
+        }
+
+        function drawTree(node, x, y, spacing) {
+            node.x = x;
+            node.y = y;
+
+            if (node.left) {
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x - spacing, y + 70);
+                ctx.strokeStyle = '#4f46e5';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                drawTree(node.left, x - spacing, y + 70, spacing / 2);
+            }
+
+            if (node.right) {
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + spacing, y + 70);
+                ctx.strokeStyle = '#4f46e5';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                drawTree(node.right, x + spacing, y + 70, spacing / 2);
+            }
+
+            // วาดโหนด (Node)
+            ctx.beginPath();
+            ctx.arc(x, y, 22, 0, 2 * Math.PI);
+            const gradient = ctx.createRadialGradient(x-5, y-5, 2, x, y, 22);
+            gradient.addColorStop(0, '#818cf8');
+            gradient.addColorStop(1, '#4f46e5');
+            ctx.fillStyle = gradient;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = 'rgba(0,0,0,0.4)';
+            ctx.fill();
+            ctx.shadowBlur = 0; // reset shadow
+            
+            ctx.fillStyle = "white";
+            ctx.font = "bold 14px Kanit";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(node.value, x, y);
+        }
+
+        // Traversal Logic
+        function getPreorder(node, list = []) {
+            if (!node) return list;
+            list.push(node.value);
+            getPreorder(node.left, list);
+            getPreorder(node.right, list);
+            return list;
+        }
+
+        function getInorder(node, list = []) {
+            if (!node) return list;
+            getInorder(node.left, list);
+            list.push(node.value);
+            getInorder(node.right, list);
+            return list;
+        }
+
+        function getPostorder(node, list = []) {
+            if (!node) return list;
+            getPostorder(node.left, list);
+            getPostorder(node.right, list);
+            list.push(node.value);
+            return list;
+        }
+    </script>
+</body>
+</html>
